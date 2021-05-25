@@ -1,14 +1,37 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import logo from './logo.svg';
 import './App.css';
 
-const users = ["Winnie", "Brad", "Bob", "Thomas"]
-
 function App() {
-  const [userItems, setUserItems] = useState(users.reduce((acc, user) => {
-    acc[user] = [];
-    return acc
-  }, {}))
+  const [users, setUsers] = useState([]);
+  const [userItems, setUserItems] = useState({})
+
+  useEffect(async () => {
+    const fetchedUsers = await fetch("http://localhost:3001/users", {
+      mode: 'cors'
+    })
+    .then(res => res.json())
+    .then(data => data)
+
+    setUsers(fetchedUsers);
+  }, [])
+
+  useEffect(async () => {
+    const items = await fetch("http://localhost:3001/items", {
+      mode: 'cors'
+    })
+    .then(res => res.json())
+    .then(data => data)
+
+    setUserItems(items.reduce((acc, item) => {
+      if (acc[item.user_id]) {
+        acc[item.user_id] = acc[item.user_id].concat([item]);
+      } else {
+        acc[item.user_id] = [item];
+      }
+      return acc
+    }, {}));
+  }, [])
 
   const addItem = (user, item) => setUserItems(prev => {
     const myItems = [...prev[user]]
@@ -49,9 +72,14 @@ function App() {
     })
   }
 
+  console.log(userItems)
+
   return (
     <div className="wrapper">
-    {users.map(user => <UserList items={userItems[user]} addItem={addItem} moveLeft={moveLeft} moveRight={moveRight} user={user} />)}
+    {users.map(user => {
+      return <UserList items={userItems[user.id] || []} addItem={addItem} moveLeft={moveLeft} moveRight={moveRight} user={user} />}
+    )}
+
     </div>
   );
 }
@@ -67,9 +95,9 @@ const UserList = ({addItem, items, moveLeft: moveLeftOrig, moveRight: moveRightO
 
   return (
     <div className="user-container">
-      <h2>{user}</h2>
+      <h2>{user.name}</h2>
       <ul>
-        {items.map((item, index) => <Item key={item} data={item} moveLeft={moveLeft} moveRight={moveRight} index={index} user={user} />)}
+        {items?.map((item, index) => <Item key={item} data={item} moveLeft={moveLeft} moveRight={moveRight} index={index} user={user} />)}
       </ul>
       <button onClick={addCard}>Add a card</button>
     </div>
@@ -79,9 +107,9 @@ const UserList = ({addItem, items, moveLeft: moveLeftOrig, moveRight: moveRightO
 const Item = ({data, index, moveLeft, moveRight, user}) => {
   return (
     <li>
-      <button disabled={user === "Winnie"} onClick={() => moveLeft(data, index)}>{"<<"}</button>
-      {data}
-      <button disabled={user === "Thomas"} onClick={() => moveRight(data, index)}>{">>"}</button>
+      <button disabled={false} onClick={() => moveLeft(data, index)}>{"<<"}</button>
+      {data.name}
+      <button disabled={false} onClick={() => moveRight(data, index)}>{">>"}</button>
     </li>
   )
 }
